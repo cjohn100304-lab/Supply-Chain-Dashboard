@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supply Chain Performance Dashboard — K Cyrus John</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1C2128;
+    --panel: #23292F;
+    --panel-2: #F7F5F1;
+    --ink: #F7F5F1;
+    --ink-dim: #9BA3AC;
+    --line: #333B44;
+    --amber: #C9863D;
+    --blue: #4A6C8C;
+    --red: #B5533C;
+    --green: #6B8F5E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+  }
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  .rail {
+    background: #181D23;
+    border-right: 1px solid var(--line);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .brand {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .brand span { color: var(--ink-dim); font-weight: 400; display: block; font-size: 12px; margin-top: 3px; }
+  .rail-group { display: flex; flex-direction: column; gap: 2px; }
+  .rail-label { font-size: 11px; color: var(--ink-dim); margin-bottom: 8px; }
+  .wh-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 13.5px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    justify-content: space-between;
+  }
+  .wh-btn:hover { background: #20262D; color: var(--ink); }
+  .wh-btn.active { background: var(--amber); color: #1C2128; font-weight: 600; }
+  .wh-btn .n { font-family: 'IBM Plex Mono', monospace; font-size: 12px; opacity: 0.75; }
+  main { padding: 32px 40px 48px; max-width: 1100px; }
+  header.top { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; }
+  h1 { font-size: 22px; font-weight: 600; }
+  .sub { color: var(--ink-dim); font-size: 13.5px; margin-top: 4px; }
+  .period { font-size: 12.5px; color: var(--ink-dim); font-family: 'IBM Plex Mono', monospace; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 32px; }
+  .kpi { background: var(--panel); padding: 18px 20px; }
+  .kpi .label { font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; }
+  .kpi .val { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .delta { font-size: 12px; margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+
+  .grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; margin-bottom: 28px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); padding: 20px 22px; }
+  .panel h2 { font-size: 13.5px; font-weight: 600; margin-bottom: 18px; color: var(--ink); }
+
+  .bars { display: flex; flex-direction: column; gap: 14px; }
+  .bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: 10px; font-size: 12.5px; }
+  .bar-track { background: #14181D; height: 8px; border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; }
+  .bar-row .pct { text-align: right; font-family: 'IBM Plex Mono', monospace; color: var(--ink-dim); }
+
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .legend { display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; }
+  .legend .n { color: var(--ink-dim); margin-left: auto; font-family: 'IBM Plex Mono', monospace; padding-left: 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; color: var(--ink-dim); font-weight: 500; font-size: 11.5px; padding: 0 10px 10px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 12px 10px; border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 3px; font-family: 'IBM Plex Mono', monospace; }
+  .tag.good { background: rgba(107,143,94,0.18); color: var(--green); }
+  .tag.warn { background: rgba(201,134,61,0.18); color: var(--amber); }
+  .tag.bad { background: rgba(181,83,60,0.18); color: var(--red); }
+
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-dim); display: flex; justify-content: space-between; }
+
+  @media (max-width: 800px) {
+    .shell { grid-template-columns: 1fr; }
+    .rail { flex-direction: row; overflow-x: auto; padding: 16px 20px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="rail">
+    <div class="brand">Supply Chain<br>Performance<span>K Cyrus John — sample data</span></div>
+    <div class="rail-group">
+      <div class="rail-label">WAREHOUSES</div>
+      <div id="whList"></div>
+    </div>
+  </div>
+
+  <main>
+    <header class="top">
+      <div>
+        <h1 id="pageTitle">All Warehouses</h1>
+        <div class="sub" id="pageSub">500 orders · 5 warehouses · last 30 days</div>
+      </div>
+      <div class="period">01 AUG – 30 AUG 2026</div>
+    </header>
+
+    <div class="kpis" id="kpiRow"></div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>On-time delivery by warehouse</h2>
+        <div class="bars" id="barChart"></div>
+      </div>
+      <div class="panel">
+        <h2>Order status breakdown</h2>
+        <div class="donut-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140" id="donut"></svg>
+          <div class="legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Warehouse detail</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Warehouse</th>
+            <th class="num">Orders</th>
+            <th class="num">On-time %</th>
+            <th class="num">Avg fulfillment (days)</th>
+            <th class="num">Delayed</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="whTable"></tbody>
+      </table>
+    </div>
+
+    <footer>
+      <span>Sample dataset for portfolio demonstration — not live inventory data.</span>
+      <span>Rebuilt with real warehouse data on request.</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+const warehouses = [
+  { name: "Bhilai", orders: 128, onTime: 94, fulfillment: 2.1, delayed: 7 },
+  { name: "Raipur", orders: 96, onTime: 88, fulfillment: 2.6, delayed: 11 },
+  { name: "Nagpur", orders: 104, onTime: 91, fulfillment: 2.3, delayed: 9 },
+  { name: "Bhopal", orders: 88, onTime: 79, fulfillment: 3.4, delayed: 18 },
+  { name: "Indore", orders: 84, onTime: 96, fulfillment: 1.9, delayed: 3 },
+];
+
+const totalOrders = warehouses.reduce((a,w) => a + w.orders, 0);
+const totalDelayed = warehouses.reduce((a,w) => a + w.delayed, 0);
+const avgOnTime = Math.round(warehouses.reduce((a,w) => a + w.onTime * w.orders, 0) / totalOrders);
+const avgFulfill = (warehouses.reduce((a,w) => a + w.fulfillment * w.orders, 0) / totalOrders).toFixed(1);
+
+const statusBreakdown = [
+  { label: "Delivered", value: 412, color: "#6B8F5E" },
+  { label: "In transit", value: 61, color: "#4A6C8C" },
+  { label: "Delayed", value: totalDelayed, color: "#B5533C" },
+  { label: "Cancelled", value: 500 - 412 - 61 - totalDelayed, color: "#9BA3AC" },
+];
+
+let selected = "ALL";
+
+function statusTag(w) {
+  if (w.onTime >= 92) return '<span class="tag good">On track</span>';
+  if (w.onTime >= 85) return '<span class="tag warn">Watch</span>';
+  return '<span class="tag bad">At risk</span>';
+}
+
+function render() {
+  const list = selected === "ALL" ? warehouses : warehouses.filter(w => w.name === selected);
+  const orders = list.reduce((a,w) => a + w.orders, 0);
+  const onTime = Math.round(list.reduce((a,w) => a + w.onTime * w.orders, 0) / orders);
+  const fulfill = (list.reduce((a,w) => a + w.fulfillment * w.orders, 0) / orders).toFixed(1);
+  const delayed = list.reduce((a,w) => a + w.delayed, 0);
+
+  document.getElementById('pageTitle').textContent = selected === "ALL" ? "All Warehouses" : selected;
+  document.getElementById('pageSub').textContent = selected === "ALL"
+    ? `${totalOrders} orders · 5 warehouses · last 30 days`
+    : `${orders} orders · last 30 days`;
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi"><div class="label">Total orders</div><div class="val">${orders}</div><div class="delta up">↑ 6.4% vs prior period</div></div>
+    <div class="kpi"><div class="label">On-time delivery</div><div class="val">${onTime}%</div><div class="delta ${onTime >= 90 ? 'up' : 'down'}">${onTime >= 90 ? '↑' : '↓'} target 90%</div></div>
+    <div class="kpi"><div class="label">Avg fulfillment time</div><div class="val">${fulfill}d</div><div class="delta up">↓ 0.3d vs prior period</div></div>
+    <div class="kpi"><div class="label">Delayed orders</div><div class="val">${delayed}</div><div class="delta ${delayed > 15 ? 'down' : 'up'}">${((delayed/orders)*100).toFixed(1)}% of total</div></div>
+  `;
+
+  document.getElementById('barChart').innerHTML = warehouses.map(w => `
+    <div class="bar-row">
+      <span>${w.name}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${w.onTime}%; background:${w.onTime >= 92 ? 'var(--green)' : w.onTime >= 85 ? 'var(--amber)' : 'var(--red)'}"></div></div>
+      <span class="pct">${w.onTime}%</span>
+    </div>
+  `).join('');
+
+  document.getElementById('whTable').innerHTML = warehouses.map(w => `
+    <tr>
+      <td>${w.name}</td>
+      <td class="num">${w.orders}</td>
+      <td class="num">${w.onTime}%</td>
+      <td class="num">${w.fulfillment}</td>
+      <td class="num">${w.delayed}</td>
+      <td>${statusTag(w)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('whList').innerHTML = `
+    <button class="wh-btn ${selected==='ALL'?'active':''}" onclick="selectWh('ALL')"><span>All warehouses</span><span class="n">${totalOrders}</span></button>
+    ${warehouses.map(w => `<button class="wh-btn ${selected===w.name?'active':''}" onclick="selectWh('${w.name}')"><span>${w.name}</span><span class="n">${w.orders}</span></button>`).join('')}
+  `;
+
+  drawDonut();
+}
+
+function selectWh(name) { selected = name; render(); }
+window.selectWh = selectWh;
+
+function drawDonut() {
+  const total = statusBreakdown.reduce((a,s) => a + s.value, 0);
+  let angle = -90;
+  const cx = 70, cy = 70, r = 55, rInner = 32;
+  let paths = '';
+  statusBreakdown.forEach(s => {
+    const frac = s.value / total;
+    const a0 = angle;
+    const a1 = angle + frac * 360;
+    angle = a1;
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    const x0 = cx + r * Math.cos(a0 * Math.PI/180);
+    const y0 = cy + r * Math.sin(a0 * Math.PI/180);
+    const x1 = cx + r * Math.cos(a1 * Math.PI/180);
+    const y1 = cy + r * Math.sin(a1 * Math.PI/180);
+    paths += `<path d="M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}" stroke="${s.color}" stroke-width="18" fill="none"/>`;
+  });
+  document.getElementById('donut').innerHTML = paths;
+  document.getElementById('donutLegend').innerHTML = statusBreakdown.map(s => `
+    <div class="row"><span class="swatch" style="background:${s.color}"></span>${s.label}<span class="n">${s.value}</span></div>
+  `).join('');
+}
+
+render();
+</script>
+</body>
+</html>
